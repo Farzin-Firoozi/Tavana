@@ -1,0 +1,8 @@
+{
+  "type": "Output",
+  "value": {
+    "chat_id": "1",
+    "id": "sensor-1",
+    "message": "AT "
+  }
+}

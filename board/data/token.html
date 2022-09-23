@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Giahino | Wifi List</title>
+    <link rel="preconnect" href="//fdn.fontcdn.ir">
+    <link rel="preconnect" href="//v1.fontapi.ir">
+    <link href="https://v1.fontapi.ir/css/Shabnam" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Shabnam";
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        body {
+            font: 10px "Shabnam";
+            background: #f7f1f1;
+        }
+
+        .wrapper {
+            max-width: 360px;
+            margin: 50px auto;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        nav {
+            width: 336px;
+            background-color: white;
+            border-radius: 15px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px 8px;
+        }
+
+        .status {
+            font-size: 16px;
+            color: #12d038;
+            direction: rtl;
+        }
+
+        .error {
+            font-size: 16px;
+            color: #dc0b3c;
+            direction: rtl;
+        }
+
+        .logout {
+            background-color: #1c9cea;
+            color: white;
+            font-weight: 500;
+            cursor: pointer;
+            width: 75px;
+            height: 35px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            border: none;
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        .input {
+            direction: ltr;
+            display: flex;
+            align-items: center;
+            width: 100%;
+            justify-content: center;
+            margin: 10px 0;
+        }
+
+        .input input {
+            min-height: 35px;
+            border-radius: 15px 0 0 15px;
+            border: 1px solid #1c9cea;
+            padding: 0 10px;
+            font-size: 15px;
+            width: 200px;
+            outline: none;
+        }
+
+        .input .add {
+            background-color: #1c9cea;
+            border: none;
+            min-height: 35px;
+            padding: 7px 25px;
+            border-radius: 0 15px 15px 0;
+            color: white;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div class="wrapper">
+    <nav>
+        <span class="error"></span>
+        <span class="status"></span>
+        <div class="input">
+            <input type="text" placeholder="device token" pattern="[0-9]*" inputMode="numeric">
+            <button class="add">ثبت</button>
+        </div>
+        <button class="logout">خارج شدن</button>
+    </nav>
+
+</div>
+
+<script type="text/javascript">
+    const statusElement = document.querySelector(".status");
+    const logOutElement = document.querySelector(".logout");
+    const errorElement = document.querySelector(".error");
+    const inputBoxElement = document.querySelector(".input");
+
+    const successMessage = "دستگاه با موفقیت وارد شده است.";
+    const errorMessage = "خطایی در افزودن دستگاه رخ داده است";
+    const addMessage = "کد دستگاه را وارد کنید";
+    const isLoadingMessage = "منتظر بمانید ...";
+    const StatusEnum = {
+        Loading: "loading",
+        LoggedIn: "true",
+        Error: "error",
+        Initial: "false"
+    }
+    let status = StatusEnum.Initial;
+    const renderStatus = () => {
+        logOutElement.style.display = "none";
+        errorElement.style.display = "none";
+        inputBoxElement.style.display = "none";
+        switch (status) {
+            case StatusEnum.LoggedIn: {
+                logOutElement.style.display = "flex";
+                statusElement.innerHTML = successMessage;
+                statusElement.style.color = "#12d038";
+                return;
+            }
+            case StatusEnum.Loading: {
+                statusElement.style.color = "black";
+                statusElement.innerHTML = isLoadingMessage;
+                return;
+            }
+            case StatusEnum.Error: {
+                errorElement.style.display = "flex";
+                errorElement.innerHTML = errorMessage;
+            }
+            case StatusEnum.Initial: {
+                statusElement.style.color = "black";
+                statusElement.innerHTML = addMessage;
+                inputBoxElement.style.display = "flex";
+            }
+        }
+
+    }
+    const request = (status) => {
+        return new Promise((res, rej) => {
+            setTimeout(() => {
+                res(status);
+            }, 1000);
+        })
+
+    }
+
+    const logOut = async () => {
+        try {
+            status = StatusEnum.Loading;
+            renderStatus();
+            const response = await fetch("http://192.168.4.1/token/logout");
+            const result = await response.text();
+            status = result;
+            renderStatus();
+            setTimeout(fetchStatus, 1000);
+        } catch (error) {
+            console.log(error);
+            status = StatusEnum.Error;
+            renderStatus();
+
+        }
+    }
+    const logIn = async () => {
+        try {
+            const inputElement = inputBoxElement.querySelector("input");
+            const token = inputElement.value;
+            if(!token) {
+                return;
+            }
+            status = StatusEnum.Loading;
+            renderStatus();
+            const response = await fetch("http://192.168.4.1/token/login/" + token);
+            const result = await response.text();
+            status = result;
+            renderStatus();
+            setTimeout(fetchStatus, 1000);
+        } catch (error) {
+            console.log(error);
+            status = StatusEnum.Error;
+            renderStatus();
+
+        }
+    }
+    let timeOut
+    const fetchStatus = async () => {
+        try {
+            clearTimeout(timeOut);
+            const response = await fetch("http://192.168.4.1/token/status");
+            const result = await response.text();
+            status = result;
+            renderStatus();
+            if(result === StatusEnum.Loading) {
+                setTimeout(fetchStatus, 2000);
+            }
+        } catch (error) {
+            console.log(error);
+            status = StatusEnum.Error;
+            renderStatus();
+        }
+    }
+
+    logOutElement.addEventListener("click", logOut);
+    inputBoxElement.querySelector(".add").addEventListener("click", logIn);
+
+    renderStatus();
+    fetchStatus();
+
+</script>
+</body>
+</html>

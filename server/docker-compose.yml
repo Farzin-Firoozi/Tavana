@@ -1,0 +1,131 @@
+version: '3.8' 
+services:
+  giahino:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: giahino
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+    # volumes:
+      # - .:/giahino
+      # - web_static_volume:/giahino/static/
+      # - web_media_volume:/giahino/media
+    restart: always
+    
+    ports:
+      - "8000:8000"
+    depends_on:
+      - db
+      - celery
+      - celery-beat
+      - rabbitmq
+      
+    networks:
+      - web_network
+    # environment:
+    #   - "SECRET_KEY=${SECRET_KEY}"
+    #   - "DEBUG=${DEBUG}"
+
+  # nginx:
+  #   container_name: nginx
+  #   build: 
+  #     context: ./nginx
+  #     dockerfile: Dockerfile
+  #   ports:
+  #     - "80:80"
+  #   depends_on:
+  #     - giahino
+  #   volumes:
+  #     - web_static_volume:/giahino/static
+  #     - web_media_volume:/giahino/media
+  #   networks:
+  #     - nginix_network
+  db:
+    image: postgres
+    container_name: db
+    restart: always
+    environment:
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file: config/.env
+    ports:
+      - "5432:5432"
+    networks:
+      - web_network
+    depends_on:
+      - influxdb
+
+  
+  influxdb:
+    image: influxdb:1.8
+    ports:
+      - '8086:8086'
+    # volumes:
+    #   - influxdb-storage:/mnt/shared/code/influxdb2
+    env_file: config/.env
+    networks:
+        - web_network
+   
+  redis:
+    image: redis:alpine
+    networks:
+        - web_network
+    ports:
+        - 6379:6379
+
+
+  celery:
+    build: .
+    command: celery -A config worker --loglevel=debug --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      - redis
+    networks:
+        - web_network
+
+  celery-beat:
+    build: .
+    command: celery -A config beat --loglevel=debug --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    depends_on:
+      - redis
+    networks:
+        - web_network
+
+  rabbitmq:
+    build:
+      context: ./Rabbitmqp
+      dockerfile: Dockerfile
+    container_name: 'rabbitmq'
+    ports:
+        - 5672:5672
+        - 15672:15672
+        - 1883:1883
+    volumes:
+        - ~/.docker-conf/rabbitmq/data/:/var/lib/rabbitmq/
+        - ~/.docker-conf/rabbitmq/log/:/var/log/rabbitmq
+    networks:
+        - web_network
+    healthcheck:
+      test: [ "CMD", "nc", "-z", "localhost", "5672" ]
+      interval: 5s
+      timeout: 15s
+      retries: 1
+
+
+
+networks:
+  web_network:
+    external: true
+  # nginix_network:
+  #   external: true
+volumes:
+  postgres_data:
+    external: true
+  # web_static_volume:
+  #   external: true
+  # web_media_volume:
+  #   external: true
