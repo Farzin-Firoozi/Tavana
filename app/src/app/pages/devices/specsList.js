@@ -10,6 +10,7 @@ import { selectRelays, selectSensors } from '~/store/selectors/device'
 import { roundness, spacing } from '~/theme'
 import api from '~/api'
 import token from '~/utils/token'
+import { showMessage } from 'react-native-flash-message'
 
 const SpecsList = () => {
   const route = useRoute()
@@ -112,6 +113,13 @@ const RelayItem = ({ item, deviceId }) => {
       .then(() => {
         setIsEnabled(!!newValue)
       })
+      .catch((err) =>
+        showMessage({
+          message: err?.response?.data?.error,
+          type: 'danger',
+          icon: 'auto',
+        })
+      )
   }
 
   return (

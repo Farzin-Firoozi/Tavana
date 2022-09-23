@@ -15,4 +15,6 @@ export const deviceRoutes = {
     `api/value/sensor/${deviceId}/${sensorId}`,
   relays: 'api/relay/',
   pins: (deviceId) => `api/pin/${deviceId}/`,
+  deviceToken: (deviceId) => `api/gettoken/${deviceId}`,
+  getBinary: 'api/device_models/1/',
 }

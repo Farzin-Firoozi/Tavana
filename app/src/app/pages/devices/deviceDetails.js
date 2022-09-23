@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from 'react'
 import { roundness, spacing } from '~/theme'
 import Header from '~/components/header'
-import { ScrollView, StyleSheet, View } from 'react-native'
+import { Linking, ScrollView, StyleSheet, View } from 'react-native'
 import { useNavigation, useRoute } from '@react-navigation/native'
 import { TouchableOpacity } from 'react-native-gesture-handler'
 import {
   ActivityIndicator,
   Button,
   Caption,
+  Text,
   Title,
   useTheme,
 } from 'react-native-paper'
+
 import Icon from 'react-native-vector-icons/Ionicons'
 import api from '~/api'
+import Clipboard from '@react-native-clipboard/clipboard'
+import { showMessage } from 'react-native-flash-message'
 
 const DeviceDetails = () => {
   const route = useRoute()
@@ -23,6 +27,39 @@ const DeviceDetails = () => {
   const [deviceSensors, setDeviceSensors] = useState([])
   const [sensorsLoading, setSensorsLoading] = useState(false)
   const [relaysLoading, setRelaysLoading] = useState(false)
+
+  const [token, setToken] = useState(null)
+  const [binaryLink, setBinaryLink] = useState('')
+
+  const [isTokenLoading, setIsTokenLoading] = useState(false)
+  const [isBinaryLinkLoading, setIsBinaryLinkLoading] = useState(false)
+
+  const isMacAssigned = !!token?.mac_addres && token?.mac_addres !== 'None'
+
+  const onLinkPress = () => {
+    Linking.openURL(binaryLink)
+  }
+
+  const copyToken = () => {
+    Clipboard.setString(token?.auth_token)
+    showMessage({ message: 'Copied!', type: 'success', icon: 'auto' })
+  }
+
+  const fetchDeviceBinaryLink = () => {
+    setIsBinaryLinkLoading(true)
+    api.devices
+      .getBinaryLink()
+      .then((res) => setBinaryLink(res?.data?.release))
+      .finally(() => setIsBinaryLinkLoading(false))
+  }
+
+  const fetchDeviceToken = (deviceId) => {
+    setIsTokenLoading(true)
+    api.devices
+      .getDeviceToken(deviceId)
+      .then((res) => setToken(res?.data))
+      .finally(() => setIsTokenLoading(false))
+  }
 
   const fetchDeviceSensors = (deviceId) => {
     setSensorsLoading(true)
@@ -47,6 +84,8 @@ const DeviceDetails = () => {
   useEffect(() => {
     fetchDeviceRelays(route.params?.id)
     fetchDeviceSensors(route.params?.id)
+    fetchDeviceToken(route.params?.id)
+    fetchDeviceBinaryLink()
   }, [route.params])
 
   const openPins = () => {
@@ -72,7 +111,7 @@ const DeviceDetails = () => {
       deviceId: route.params?.id,
     })
   }
-
+  console.log(token)
   return (
     <>
       <Header center={{ render: 'Device Details' }} />
@@ -161,11 +200,38 @@ const DeviceDetails = () => {
 
         <View style={styles.divider} />
 
-        {/* <Button color={theme.colors.red} mode="outlined">
-          Delete this device
-        </Button> */}
-        <Button color={theme.colors.primary} mode="contained">
-          Download Binary
+        <Button
+          color={theme.colors.primary}
+          mode="text"
+          loading={isTokenLoading}
+          disabled={isTokenLoading}
+          onPress={copyToken}
+        >
+          {token ? (
+            isMacAssigned ? (
+              <Icon
+                name="checkmark-circle"
+                color={theme.colors.green}
+                size={20}
+              />
+            ) : (
+              <Icon name="close-circle" color={theme.colors.red} size={20} />
+            )
+          ) : null}
+
+          {!!token && 'Device Token: ' + token?.auth_token}
+        </Button>
+
+        <View style={styles.divider} />
+
+        <Button
+          onPress={onLinkPress}
+          color={theme.colors.aqua}
+          mode="outlined"
+          loading={isBinaryLinkLoading}
+          disabled={isBinaryLinkLoading}
+        >
+          Download Binary File
         </Button>
       </ScrollView>
     </>

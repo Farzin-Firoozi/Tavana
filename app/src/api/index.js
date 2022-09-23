@@ -23,6 +23,8 @@ const devices = {
     api.get(deviceRoutes.sensorData(deviceId, sensorId)),
   toggleRelayDevice: (deviceId, params) =>
     api.put(deviceRoutes.deviceRelays + deviceId + '/', params),
+  getDeviceToken: (deviceId) => api.get(deviceRoutes.deviceToken(deviceId)),
+  getBinaryLink: () => api.get(deviceRoutes.getBinary),
 }
 
 export default { auth, devices }
