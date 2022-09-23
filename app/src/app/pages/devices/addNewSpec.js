@@ -120,7 +120,7 @@ const AddNewSpec = () => {
               value={timeValue}
               onChangeText={setTimeValue}
               keyboardType="number-pad"
-              label="Sample Rate (ms)"
+              label="Sample Rate (s)"
             />
           )
         }

@@ -180,6 +180,7 @@ const RegisterPage = () => {
           labelStyle={{ padding: spacing / 2 }}
           mode="outlined"
           onPress={goBack}
+          loading={isLoading}
         >
           Login
         </Button>
